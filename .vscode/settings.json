@@ -1,0 +1,13 @@
+{
+    "C_Cpp.clang_format_style": "LLVM"
+    ,
+    "[cpp]": {
+        "editor.wordBasedSuggestions": false,
+        "editor.suggest.insertMode": "replace",
+        "editor.semanticHighlighting.enabled": true
+    },
+    "files.associations": {
+        "algorithms.h": "c",
+        "importantincludes.h": "c"
+    }
+}
