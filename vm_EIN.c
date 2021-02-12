@@ -8,20 +8,27 @@
 
 // prototypes for the functions.
 int executeInstruction();
+
 int isolateOperation(uint32_t);
 int isolateOperand(uint32_t);
 int isolateAddress(uint32_t);
+
 int initializeMemory(char *);
 void removeSpaces(char *);
-int32_t parseLine(char *);
 int getInstruction(char *);
-void parseInstructions(char *);
+int32_t parseLine(char *);
+void initMemory(char *);
+
 int getOperation(char *, char *);
 int getOperand(char *, char *);
 int getAddress(char *, char *);
+
 void removeComments(char *);
 void removeNewLine(char *);
 long getFileLength(FILE *);
+char *readFile(char *);
+int readMode(char **, int);
+char *getCode(int code, char **argv);
 
 // Offset for the data in the array.
 #define DATA_OFFSET (2 << 11)
@@ -56,24 +63,17 @@ static uint32_t OPC;    // The current instruction.
 static int32_t AKK;     // Akkumulator
 
 int main(int argc, char *argv[]) {
-  if (argc > 2) {
-    // TODO:
-    // Read code from file, read code from scanline, MAYBE pad addresses and
-    // operands to the correct length.
-    printf("The program has to many arguments!");
-    return 1;
-  } else {
-
-    // Test instructions, which do nothing except print '6' "0001 LDK
-    // 00006\n0002 STA 00001\n0003 OUT 00001\n0004 HLT 00099"
-
-    // Everything is fine, continue with the execution:
-    // Initialize memory:
-    parseInstructions(argv[1]);
-    // Main loop of the vm.
-    while (1) {
-      executeInstruction();
-    }
+  char *buffer = NULL;
+  // Initialize the mode in which the VM will run.
+  int mode = readMode(argv, argc);
+  // Get the code and activate the VM mode.
+  buffer = getCode(mode, argv);
+  // Everything is fine, continue with the execution:
+  // Initialize memory:
+  initMemory(buffer);
+  // Main loop of the vm.
+  while (1) {
+    executeInstruction();
   }
   system("pause");
   return EXIT_SUCCESS;
@@ -182,7 +182,8 @@ inline int isolateAddress(uint32_t instruction) {
 void removeNewLine(char *s) {
   const char *d = s;
   do {
-    while (*d == '\n') {
+    // Handle newline \n for unix and \r (carriage return) for windows.
+    while (*d == '\n' || *d == '\r') {
       ++d;
     }
   } while ((*s++ = *d++));
@@ -236,21 +237,21 @@ int getAddress(char *buffer, char *string) {
   return atoi(buffer);
 }
 
-void parseInstructions(char *string) {
-
+void initMemory(char *string) {
   removeSpaces(string);
+#if DEBUG
+  printf("After removing spaces: %s\n", string);
+#endif
   removeNewLine(string);
-
+#if DEBUG
+  printf("After removing newlines: %s\n", string);
+#endif
   int len = strlen(string);
   char buffer[13];
   buffer[12] = '\0';
-  if (len % 12 != 0) {
-    return;
-  } else {
-    for (int i = 0, j = 0; i < len; i += 12, j++) {
-      memcpy(buffer, string + i, 12);
-      memory[j + 1] = parseLine(buffer);
-    }
+  for (int i = 0, j = 0; i < len; i += 12, j++) {
+    memcpy(buffer, string + i, 12);
+    memory[j + 1] = parseLine(buffer);
   }
 }
 
@@ -338,6 +339,9 @@ void removeComments(char *string) {
       }
     }
   }
+#if DEBUG
+  printf("After removing comments: %s\n", string);
+#endif
 }
 
 /**************************************
@@ -352,17 +356,17 @@ void removeComments(char *string) {
 long getFileLength(FILE *file) {
   fseek(file, 0, SEEK_END);
   long length = ftell(file);
+#if DEBUG
+  printf("Length of file: %d\n", length);
+#endif
   fseek(file, 0, SEEK_SET);
   return length;
 }
 /**************************************
- * Name: readFile 
- * Beschreibung: Reads the data of the file, and returns it as a character buffer. 
- * Formale Parameter: path: path to the file 
- * Rueckgabewert: buffer: buffer with the file info 
- * Version: 1.0 
- * Author: Malte Quandt 
- * Datum: 2021-02-12  
+ * Name: readFile
+ * Beschreibung: Reads the data of the file, and returns it as a character
+ *buffer. Formale Parameter: path: path to the file Rueckgabewert: buffer:
+ *buffer with the file info Version: 1.0 Author: Malte Quandt Datum: 2021-02-12
  **************************************/
 char *readFile(char *path) {
   char *buffer = NULL;
@@ -373,8 +377,10 @@ char *readFile(char *path) {
     buffer = malloc(length * sizeof(char));
     // If the malloc did not fail, read the info into the string buffer.
     if (buffer) {
-      read(buffer, 1, length, file);
+      fread(buffer, 1, length, file);
     }
+    // Set the last item to be the string delimiter.
+    buffer[length] = '\0';
     // Stream is no longer needed, but the operating system might need it later,
     // thus we need to close it.
     fclose(file);
@@ -382,3 +388,64 @@ char *readFile(char *path) {
   return buffer;
 }
 
+int readMode(char **argv, int argc) {
+  if (!strcmp(argv[1], "-f")) {
+    if (argc < 2) {
+      printf("You did not provide an input file path!\n");
+      exit(1);
+    }
+    // Requests an input file:
+    return 0;
+  } else if (!strcmp(argv[1], "-i")) {
+    // Requests the code as the second argument:
+    if (argc < 3) {
+      printf("You did not provide any code in the second argument!");
+      exit(1);
+    }
+    return 1;
+  } else if (!strcmp(argv[1], "-t")) {
+    // Requests to open the tutorial:
+    // TODO
+    return 2;
+  } else if (!strcmp(argv[1], "-help")) {
+    // Requests a list of all possible commands:
+    return 3;
+  } else if (!strcmp(argv[1], "-s")) {
+    // Create the code dynamically on the command line:
+    return 4;
+  } else {
+    // The option is not available:
+    printf("The chosen option is not available!\n");
+    exit(1);
+  }
+}
+
+char *getCode(int code, char **argv) {
+  char *buffer = NULL;
+  switch (code) {
+  case 0:
+    // Input file:
+    buffer = readFile(argv[2]);
+    return buffer;
+    break;
+  case 1:
+    // Second argument:
+    break;
+  case 2:
+    // Open the tutorial:
+    break;
+  case 3:
+    // output list of commands.
+    printf("-f: \tread the code from a file, which is the second "
+           "argument\n\n-i: \t"
+           "read the code from the second argument.\n\n-help: \tGet info about "
+           "all "
+           "available commands\n\n-t \t Start the tutorial \n\n-s \t Read the "
+           "code "
+           "dynamically\n\n");
+    exit(0);
+  case 4:
+    // Read code from stdin.
+    break;
+  }
+}
