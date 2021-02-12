@@ -179,23 +179,23 @@ inline int isolateAddress(uint32_t instruction) {
   return (instruction >> 21) & 0x7FF;
 }
 
-void removeNewLine(char *s) {
-  const char *d = s;
+void removeNewLine(char *string) {
+  const char *temp = string;
   do {
     // Handle newline \n for unix and \r (carriage return) for windows.
-    while (*d == '\n' || *d == '\r') {
-      ++d;
+    while (*temp == '\n' || *temp == '\r') {
+      ++temp;
     }
-  } while ((*s++ = *d++));
+  } while ((*string++ = *temp++));
 }
 
-void removeSpaces(char *s) {
-  const char *d = s;
+void removeSpaces(char *string) {
+  const char *temp = string;
   do {
-    while (*d == ' ') {
-      ++d;
+    while (*temp == ' ') {
+      ++temp;
     }
-  } while ((*s++ = *d++));
+  } while ((*string++ = *temp++));
 }
 
 int32_t parseLine(char *string) {
