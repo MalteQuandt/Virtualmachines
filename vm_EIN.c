@@ -30,9 +30,6 @@ char *readFile(char *);
 int readMode(char **, int);
 char *getCode(int code, char **argv);
 
-// Offset for the data in the array.
-#define DATA_OFFSET (2 << 11)
-
 // For debuggin purposes
 #define DEBUG 0
 /* Instructions: */
@@ -56,7 +53,9 @@ enum {
   HLT /* = 16, so we need 5 bits to represent the instructions! */
 };
 /* 65536 dates with 32 bits of memory each */
-static uint32_t memory[UINT16_MAX + (2 << 11)];
+static uint32_t memory[UINT16_MAX];
+/* 2^12 dates with 32 bits of memory each. */
+static uint32_t code[2<<10];
 /* Registers: */
 static uint32_t PC = 1; // The program flow starts at the address one!
 static uint32_t OPC;    // The current instruction.
@@ -82,31 +81,31 @@ int main(int argc, char *argv[]) {
 // Executes the current instruction and
 int executeInstruction() {
   // 1. Befehl holen
-  OPC = memory[PC];
+  OPC = code[PC];
   // 2. Operand holen
   int operand = isolateOperand(OPC), operation = isolateOperation(OPC);
   // 3. Befehl dekodieren & Befehl ausfuehren
   switch (operation) {
   case ADD:
-    AKK += memory[operand + DATA_OFFSET];
+    AKK += memory[operand];
     break;
   case SUB:
-    AKK -= memory[operand + DATA_OFFSET];
+    AKK -= memory[operand];
     break;
   case MUL:
-    AKK *= memory[operand + DATA_OFFSET];
+    AKK *= memory[operand];
     break;
   case DIV:
-    AKK /= memory[operand + DATA_OFFSET];
+    AKK /= memory[operand];
     break;
   case LDA:
-    AKK = memory[operand + DATA_OFFSET];
+    AKK = memory[operand];
     break;
   case LDK:
     AKK = operand;
     break;
   case STA:
-    memory[operand + DATA_OFFSET] = AKK;
+    memory[operand] = AKK;
     break;
   case JMP:
     PC = operand;
@@ -143,10 +142,10 @@ int executeInstruction() {
     return EXIT_SUCCESS;
   case INP:
     printf("\nPlease input some number: ");
-    scanf("%d", memory + operand + DATA_OFFSET);
+    scanf("%d", memory + operand);
     break;
   case OUT:
-    printf("\n%d", memory[operand + DATA_OFFSET]);
+    printf("\n%d", memory[operand]);
     break;
   case HLT:
     /* trap signal */
@@ -251,7 +250,7 @@ void initMemory(char *string) {
   buffer[12] = '\0';
   for (int i = 0, j = 0; i < len; i += 12, j++) {
     memcpy(buffer, string + i, 12);
-    memory[j + 1] = parseLine(buffer);
+    code[j + 1] = parseLine(buffer);
   }
 }
 
