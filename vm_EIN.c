@@ -55,7 +55,7 @@ enum {
 /* 65536 dates with 32 bits of memory each */
 static uint32_t memory[UINT16_MAX];
 /* 2^12 dates with 32 bits of memory each. */
-static uint32_t code[2<<10];
+static uint32_t code[2048];
 /* Registers: */
 static uint32_t PC = 1; // The program flow starts at the address one!
 static uint32_t OPC;    // The current instruction.
@@ -395,23 +395,16 @@ int readMode(char **argv, int argc) {
     }
     // Requests an input file:
     return 0;
-  } else if (!strcmp(argv[1], "-i")) {
+  } else if (!strcmp(argv[1], "-c")) {
     // Requests the code as the second argument:
     if (argc < 3) {
       printf("You did not provide any code in the second argument!");
       exit(1);
     }
     return 1;
-  } else if (!strcmp(argv[1], "-t")) {
-    // Requests to open the tutorial:
-    // TODO
-    return 2;
   } else if (!strcmp(argv[1], "--help")) {
     // Requests a list of all possible commands:
-    return 3;
-  } else if (!strcmp(argv[1], "-s")) {
-    // Create the code dynamically on the command line:
-    return 4;
+    return 2;
   } else {
     // The option is not available:
     printf("The chosen option is not available!\n");
@@ -432,24 +425,11 @@ char *getCode(int code, char **argv) {
     return argv[2];
     break;
   case 2:
-    // Open the tutorial:
-    printf("The tutorial is not yet implemented!");
-    exit(1);
-    break;
-  case 3:
     // output list of commands.
     printf("-f: \tRead the code from a file, which is the second "
-           "argument\n\n-i: \t"
+           "argument\n\n-c: \t"
            "Read the code from the second argument.\n\n--help: Get info about "
            "all "
-           "available commands\n\n-t \tStart the tutorial \n\n-s \tRead the "
-           "code "
-           "dynamically as user input\n\n");
+           "available commands\n\n");
     exit(0);
-  case 4:
-    // Read code from stdin.
-    printf("This feature is not implemented yet!");
-    exit(1);
-    break;
   }
-}
