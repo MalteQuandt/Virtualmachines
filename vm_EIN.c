@@ -407,7 +407,7 @@ int readMode(char **argv, int argc) {
     // Requests to open the tutorial:
     // TODO
     return 2;
-  } else if (!strcmp(argv[1], "-help")) {
+  } else if (!strcmp(argv[1], "--help")) {
     // Requests a list of all possible commands:
     return 3;
   } else if (!strcmp(argv[1], "-s")) {
@@ -430,22 +430,27 @@ char *getCode(int code, char **argv) {
     break;
   case 1:
     // Second argument:
+    return argv[2];
     break;
   case 2:
     // Open the tutorial:
+    printf("The tutorial is not yet implemented!");
+    exit(1);
     break;
   case 3:
     // output list of commands.
-    printf("-f: \tread the code from a file, which is the second "
+    printf("-f: \tRead the code from a file, which is the second "
            "argument\n\n-i: \t"
-           "read the code from the second argument.\n\n-help: \tGet info about "
+           "Read the code from the second argument.\n\n--help: Get info about "
            "all "
-           "available commands\n\n-t \t Start the tutorial \n\n-s \t Read the "
+           "available commands\n\n-t \tStart the tutorial \n\n-s \tRead the "
            "code "
-           "dynamically\n\n");
+           "dynamically as user input\n\n");
     exit(0);
   case 4:
     // Read code from stdin.
+    printf("This feature is not implemented yet!");
+    exit(1);
     break;
   }
 }
