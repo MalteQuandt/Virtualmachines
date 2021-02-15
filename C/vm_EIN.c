@@ -73,7 +73,8 @@ int main(int argc, char *argv[]) {
   int mode = readMode(argv, argc);
   // Get the code and activate the VM mode.
   buffer = getCode(mode, argv);
-  // Everything is fine, continue with the execution:
+  // Remove comments:
+  removeComments(buffer);
   // Initialize memory.
   convertIntoCode(buffer);
   // Main loop of the vm.
@@ -353,7 +354,8 @@ void removeComments(char *string) {
           // Replace the contents plus the ';' character and break the loop.
           string[i + j] = ' ';
           break;
-        } else if (string[i + j] == '\0' || string[i + j] == '\n') {
+        } else if (string[i + j] == '\0' || string[i + j] == '\n' ||
+                   string[i + j] == '\r') {
           // Break the loop.
           break;
         } else {
