@@ -33,8 +33,8 @@ void convertIntoCode(char *);
 void printCode();
 
 // For changing the default output behaivior.
-#define INPUTSTRING "\nPlease input some number: "
-#define OUTPUTSTRING "\n%d"
+#define INPUTSTRING "Please input some number: \n"
+#define OUTPUTSTRING "%d\n"
 
 // For debuggin purposes
 #define DEBUG 0
@@ -177,16 +177,36 @@ int executeInstruction() {
   case HLT:
     /* trap signal */
     switch (operand) {
+    // The only case defined by the official EIN documentation is 99, so
+    // i took some creative liberty to implement my own trap signals:
+    case 0:
+      // Print a string that is user defined to the console.
+      // the starting position of it is in the accumulator, and it will output
+      // until a null-byte was reached.
+      {
+        int32_t temp = AKK;
+#if DEBUG
+        printf("The akkumulator is %d and the memory at it is %d", AKK,
+               memory[AKK]);
+#endif
+        while (memory[temp] != 0) {
+          printf("%c", memory[temp]);
+          temp++;
+        }
+      }
+      break;
     case 99:
       exit(0);
       break;
       // There is space for up to 65534 more codes.
     default:
-      printf("\nThis trap signal does not exit!\n");
       break;
     }
+    break;
   default:
+#if DEBUG
     printf("\nThis instruction does not exist!\n");
+#endif
     exit(0);
   }
 
