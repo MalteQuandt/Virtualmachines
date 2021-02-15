@@ -28,7 +28,13 @@ void removeNewLine(char *);
 long getFileLength(FILE *);
 char *readFile(char *);
 int readMode(char **, int);
-char *getCode(int code, char **argv);
+char *getCode(int, char **);
+void convertIntoCode(char *);
+void printCode();
+
+// For changing the default output behaivior.
+#define INPUTSTRING "\nPlease input some number: "
+#define OUTPUTSTRING "\n%d"
 
 // For debuggin purposes
 #define DEBUG 0
@@ -68,8 +74,8 @@ int main(int argc, char *argv[]) {
   // Get the code and activate the VM mode.
   buffer = getCode(mode, argv);
   // Everything is fine, continue with the execution:
-  // Initialize memory:
-  initMemory(buffer);
+  // Initialize memory.
+  convertIntoCode(buffer);
   // Main loop of the vm.
   while (1) {
     executeInstruction();
@@ -82,8 +88,16 @@ int main(int argc, char *argv[]) {
 int executeInstruction() {
   // 1. Befehl holen
   OPC = code[PC];
+  if (OPC == 0) {
+    printf("The machine got an unexpected 0 input.");
+    exit(0);
+  }
   // 2. Operand holen
   int operand = isolateOperand(OPC), operation = isolateOperation(OPC);
+#if DEBUG
+  printf("\nOperand: %d\n", operand);
+  printf("Operation: %d\n", operation);
+#endif
   // 3. Befehl dekodieren & Befehl ausfuehren
   switch (operation) {
   case ADD:
@@ -113,39 +127,51 @@ int executeInstruction() {
   case JEZ:
     if (AKK == 0) {
       PC = operand;
+      return EXIT_SUCCESS;
+    } else {
+      break;
     }
-    return EXIT_SUCCESS;
   case JNE:
     if (AKK != 0) {
       PC = operand;
+      return EXIT_SUCCESS;
+    } else {
+      break;
     }
-    return EXIT_SUCCESS;
   case JLZ:
     if (AKK < 0) {
       PC = operand;
+      return EXIT_SUCCESS;
+    } else {
+      break;
     }
-    return EXIT_SUCCESS;
   case JLE:
     if (AKK <= 0) {
       PC = operand;
+      return EXIT_SUCCESS;
+    } else {
+      break;
     }
-    return EXIT_SUCCESS;
   case JGZ:
     if (AKK > 0) {
       PC = operand;
+      return EXIT_SUCCESS;
+    } else {
+      break;
     }
-    return EXIT_SUCCESS;
   case JGE:
     if (AKK >= 0) {
       PC = operand;
+      return EXIT_SUCCESS;
+    } else {
+      break;
     }
-    return EXIT_SUCCESS;
   case INP:
-    printf("\nPlease input some number: ");
-    scanf("%d", memory + operand);
+    printf(INPUTSTRING);
+    scanf("%d", &memory[operand]);
     break;
   case OUT:
-    printf("\n%d", memory[operand]);
+    printf(OUTPUTSTRING, memory[operand]);
     break;
   case HLT:
     /* trap signal */
@@ -339,7 +365,7 @@ void removeComments(char *string) {
     }
   }
 #if DEBUG
-  printf("After removing comments: %s\n", string);
+  printf("After removing comments: \n%s\n", string);
 #endif
 }
 
@@ -433,3 +459,56 @@ char *getCode(int code, char **argv) {
            "available commands\n\n");
     exit(0);
   }
+}
+
+/**************************************
+ * Name: convertIntoCode
+ * Beschreibung: Takes code without comments, which has already been
+ *preprocessed, and converts it into a stream of tokens. Formale Parameter:code
+ * Rueckgabewert: void
+ * Version: 0.1
+ * Author: Malte Quandt
+ * Datum: 2021-02-13
+ **************************************/
+void convertIntoCode(char *instructions) {
+#if DEBUG
+  printf("Convert \n%s\n with lines into code\n", code);
+#endif
+  char *delimiter = " \r\n";
+  char *buffer = strtok(instructions, delimiter);
+  int operation, operand, address;
+#if DEBUG
+  printf("////////////////////////////////////\n");
+#endif
+  while (buffer != NULL) {
+    // Isolate the address:
+    address = atoi(buffer);
+#if DEBUG
+    printf("Address: %s, %d\n", buffer, address);
+#endif
+    buffer = strtok(NULL, delimiter);
+    // Isolate the operation:
+    operation = getInstruction(buffer);
+#if DEBUG
+    printf("Operation: %s, %d\n", buffer, operation);
+#endif
+    buffer = strtok(NULL, delimiter);
+    // Isolate the operand:
+    operand = atoi(buffer);
+#if DEBUG
+    printf("Operand: %s, %d\n", buffer, operand);
+#endif
+    buffer = strtok(NULL, delimiter);
+    // Write the operation into the code address space.
+    code[address] = operand + (address << 21) + (operation << 16);
+  }
+#if DEBUG
+  printf("////////////////////////////////////\n");
+#endif
+}
+
+void printCode() {
+  for (int i = 1; i < 10; i++) {
+    printf("Code at %i is: %d\n", i, code[i]);
+  }
+}
