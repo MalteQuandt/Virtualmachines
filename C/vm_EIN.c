@@ -30,14 +30,17 @@ char *readFile(char *);
 int readMode(char **, int);
 char *getCode(int, char **);
 void convertIntoCode(char *);
-void printCode();
+char *preprocessor(char *);
+void processInstruction(char *);
+int printMemory(int);
+int findNthOccurance(const char *, char, int);
 
 // For changing the default output behaivior.
 #define INPUTSTRING "Please input some number: \n"
 #define OUTPUTSTRING "%d\n"
 
 // For debuggin purposes
-#define DEBUG 0
+#define DEBUG 1
 /* Instructions: */
 enum {
   ADD = 0,
@@ -250,7 +253,10 @@ int32_t parseLine(char *string) {
 #if DEBUG
   printf("String: %s\n", string);
 #endif
-  instruction = getOperation(buffer, string);
+
+  if ((instruction = getOperation(buffer, string)) == -1) {
+    return -1;
+  };
 #if DEBUG
   printf("Instruction: %d\n", instruction);
 #endif
@@ -493,44 +499,129 @@ char *getCode(int code, char **argv) {
  * Datum: 2021-02-13
  **************************************/
 void convertIntoCode(char *instructions) {
+  char *buffer = NULL;
+  // Work the preprocessor:
+  instructions = preprocessor(instructions);
+#if DEBUG
+  printf("After preprocessing: %s\n", instructions);
+#endif
+
 #if DEBUG
   printf("Convert \n%s\n with lines into code\n", code);
 #endif
   char *delimiter = " \r\n";
-  char *buffer = strtok(instructions, delimiter);
+  buffer = strtok(instructions, delimiter);
   int operation, operand, address;
 #if DEBUG
   printf("////////////////////////////////////\n");
 #endif
   while (buffer != NULL) {
-    // Isolate the address:
-    address = atoi(buffer);
-#if DEBUG
-    printf("Address: %s, %d\n", buffer, address);
-#endif
+    processInstruction(buffer);
     buffer = strtok(NULL, delimiter);
-    // Isolate the operation:
-    operation = getInstruction(buffer);
-#if DEBUG
-    printf("Operation: %s, %d\n", buffer, operation);
-#endif
-    buffer = strtok(NULL, delimiter);
-    // Isolate the operand:
-    operand = atoi(buffer);
-#if DEBUG
-    printf("Operand: %s, %d\n", buffer, operand);
-#endif
-    buffer = strtok(NULL, delimiter);
-    // Write the operation into the code address space.
-    code[address] = operand + (address << 21) + (operation << 16);
   }
 #if DEBUG
   printf("////////////////////////////////////\n");
 #endif
 }
 
-void printCode() {
-  for (int i = 1; i < 10; i++) {
-    printf("Code at %i is: %d\n", i, code[i]);
+void processInstruction(char *buffer) {
+  char *delimiter = " \r\n";
+  int operation, operand, address;
+  address = atoi(buffer);
+  buffer = strtok(NULL, delimiter);
+  // Isolate the operation:
+  operation = getInstruction(buffer);
+#if DEBUG
+  printf("Operation: %s, %d\n", buffer, operation);
+#endif
+  buffer = strtok(NULL, delimiter);
+  // Isolate the operand:
+  operand = atoi(buffer);
+#if DEBUG
+  printf("Operand: %s, %d\n", buffer, operand);
+#endif
+  // Write the operation into the code address space.
+  code[address] = operand + (address << 21) + (operation << 16);
+}
+
+int printMemory(int position) {
+  for (int i = 0; i < 65665; i++) {
+    if (memory[i + position] == 0) {
+      break;
+    }
+    printf("Data at %d is %c\n", i + position, memory[i + position]);
   }
+}
+/**************************************
+ * Name: replaceLine
+ * Beschreibung: Replace the contents of the range with whitespace characters.
+ * Formale Parameter: string, start int, end int
+ * Rueckgabewert: success value
+ * Version: 0.1
+ * Author: Malte Quandt
+ * Datum: 2021-02-16
+ **************************************/
+void replaceLine(char *string, int start, int end) {
+  int len = strlen(string) + 1;
+  if (end >= len) {
+    len = end;
+  } else {
+    for (int i = start; i < end; i++) {
+      string[i] = ' ';
+    }
+  }
+}
+
+char *preprocessor(char *buffer) {
+  char *pos = strstr(buffer, "#END") + 4;
+  char *temp = malloc(sizeof(char) * (pos - buffer)), *token;
+  memcpy(temp, buffer + 4, sizeof(char) * (pos - buffer - 7));
+  temp[pos - buffer - 8] = '\0';
+  // Processing the preprocessor statements:
+  token = strtok(temp, "\n\r");
+  while (token != NULL) {
+    // Remove the preprocessor statenment name:
+    int positionLOAD = (strstr(token, "#LOAD") + 6) - token;
+    token += positionLOAD;
+    int positionChar = findNthOccurance(token, '\"', 0);
+
+    token[positionChar] = '\0';
+    int position = atoi(token);
+
+    token += positionChar + 1;
+    positionChar = findNthOccurance(token, '\"', 0);
+    // Write the data to memory:
+    for (int i = 0; i < positionChar; i++) {
+      memory[position + i] = token[i];
+    }
+    // Jump to the next token:
+    token = strtok(NULL, "\n\r");
+  }
+  free(temp);
+  // Return the string after the preprocessor statenments:
+  return buffer + (pos - buffer);
+}
+
+/**************************************
+ * Name: findNthOccurance
+ * Beschreibung: Find the nth occurance of a character in a specific string,
+ *where the number 0 specifies the first occurance. Formale Parameter:haystack,
+ *needle, n Rueckgabewert:position Version:1.0 Author: Malte Quandt Datum:
+ *2021-02-16
+ **************************************/
+int findNthOccurance(const char *haystack, char needle, int n) {
+  int len = strlen(haystack) + 1, temp = 0;
+  for (int i = 0; i < len; i++) {
+    if (haystack[i] == needle) {
+      if (temp == n) {
+        return i;
+      } else {
+        temp++;
+        continue;
+      }
+    } else {
+      continue;
+    }
+  }
+  return -1;
 }
