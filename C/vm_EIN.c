@@ -40,7 +40,7 @@ int findNthOccurance(const char *, char, int);
 #define OUTPUTSTRING "%d\n"
 
 // For debuggin purposes
-#define DEBUG 1
+#define DEBUG 0
 /* Instructions: */
 enum {
   ADD = 0,
@@ -505,10 +505,6 @@ void convertIntoCode(char *instructions) {
 #if DEBUG
   printf("After preprocessing: %s\n", instructions);
 #endif
-
-#if DEBUG
-  printf("Convert \n%s\n with lines into code\n", code);
-#endif
   char *delimiter = " \r\n";
   buffer = strtok(instructions, delimiter);
   int operation, operand, address;
@@ -574,6 +570,10 @@ void replaceLine(char *string, int start, int end) {
 
 char *preprocessor(char *buffer) {
   char *pos = strstr(buffer, "#END") + 4;
+  if (pos == NULL) {
+      printf("THIS IS HERE");
+    return buffer;
+  }
   char *temp = malloc(sizeof(char) * (pos - buffer)), *token;
   memcpy(temp, buffer + 4, sizeof(char) * (pos - buffer - 7));
   temp[pos - buffer - 8] = '\0';
